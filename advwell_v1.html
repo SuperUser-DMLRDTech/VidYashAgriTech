@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Well Volume Calculator & Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        canvas {
+            display: block;
+            outline: none;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Smooth transitions for adding/removing items */
+        .section-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #canvas3dContainer canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-[#020617] dark:text-[#f8fafc] transition-colors duration-300">
+
+    <header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 transition-colors duration-300 shadow-sm">
+        <div class="max-w-[1600px] mx-auto px-4 py-3 md:py-4 flex flex-col gap-4">
+            
+            <!-- Top Row: Logos and Title -->
+            <div class="flex items-center justify-between gap-2 sm:gap-4">
+                <!-- Left Logo: VidYash -->
+                <a href="#" class="inline-block shrink-0 transition-transform hover:scale-105">
+                    <img src="VidYash AgriTech - logo primary - light theme (3).png" alt="VidYash AgriTech Logo" class="block dark:hidden h-8 sm:h-10 md:h-12 object-contain transition-opacity">
+                    <img src="VidYash AgriTech - logo primary - dark theme.png" alt="VidYash AgriTech Logo" class="hidden dark:block h-8 sm:h-10 md:h-12 object-contain transition-opacity">
+                </a>
+                
+                <!-- Title -->
+                <h1 class="text-lg sm:text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-400 text-center leading-tight flex-1">
+                    <span class="hidden sm:inline" data-i18n="appTitle">Dynamic Well Volume Calculator & Visualizer</span>
+                    <span class="sm:hidden text-base" data-i18n="appTitleMobile">Dynamic Well Calc</span>
+                </h1>
+                
+                <!-- Right Logo: DMLRD -->
+                <a href="#" class="inline-block shrink-0 transition-transform hover:scale-105">
+                    <img src="DMLRD - logo primary - LR 1k.png" alt="DMLRD Tech Logo" class="block dark:hidden h-8 sm:h-10 md:h-12 object-contain transition-opacity">
+                    <img src="DMLRD - logo secondary half white - HR 1k.png" alt="DMLRD Tech Logo" class="hidden dark:block h-8 sm:h-10 md:h-12 object-contain transition-opacity">
+                </a>
+            </div>
+            
+            <!-- Bottom Row: Controls -->
+            <div class="w-full overflow-x-auto pb-1 scrollbar-hide border-t border-slate-200/60 dark:border-slate-800/60 pt-3">
+                <div class="flex items-center justify-between gap-4 min-w-max w-full">
+                    
+                    <!-- Left: Language -->
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700">
+                            <select id="langSelect" aria-label="Language" class="bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer">
+                                <option value="en">English</option>
+                                <option value="hi">हिंदी</option>
+                                <option value="mr">मराठी</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Center Controls -->
+                    <div class="flex items-center gap-3 md:gap-4 flex-1 justify-center">
+                        <div class="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700">
+                            <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap" data-i18n="globalTop">Top Radius:</label>
+                            <input type="number" id="globalTopRadius" step="any" min="0.1" value="5" class="w-14 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-1 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700">
+                            <select id="unitSelect" aria-label="Unit" class="bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer">
+                                <option value="meters" data-i18n="meters">Meters</option>
+                                <option value="feet" data-i18n="feet">Feet</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Right: Theme -->
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700">
+                            <select id="themeSelect" aria-label="Theme" class="bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer">
+                                <option value="dark" data-i18n="dark">Dark</option>
+                                <option value="light" data-i18n="light">Light</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            
+        </div>
+    </header>
+
+    <main class="flex-grow w-full max-w-[1600px] mx-auto p-3 sm:p-4 md:p-6 lg:p-8 flex flex-col lg:grid lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Dynamic Sections Control -->
+        <div class="lg:col-span-5 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col w-full h-auto lg:h-[calc(100vh-140px)] transition-colors duration-300">
+            <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex justify-between items-center shrink-0 rounded-t-2xl">
+                <h2 class="text-lg font-bold text-slate-800 dark:text-slate-200 tracking-tight" data-i18n="wellSections">Well Sections</h2>
+                <button id="addSectionBtn" class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5 shadow-lg shadow-emerald-900/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span data-i18n="addSection">Add Section</span>
+                </button>
+            </div>
+            
+            <div class="p-3 sm:p-5 overflow-y-auto flex-grow bg-slate-50/30 dark:bg-slate-900/30 space-y-4" id="sectionsContainer">
+                <!-- Dynamic section inputs will be injected here -->
+            </div>
+            
+            <div class="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shrink-0 rounded-b-2xl">
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 flex flex-col border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+                    <span class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5" data-i18n="totalVolume">Total Volume</span>
+                    <div id="totalVolumeOutput" class="text-3xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight truncate">
+                        0.00 <span class="text-lg sm:text-xl font-semibold text-slate-400 dark:text-slate-500" data-i18n="liters">Liters</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Visualizations -->
+        <div class="lg:col-span-7 flex flex-col gap-6 w-full h-full lg:h-[calc(100vh-140px)]">
+            <!-- 2D View -->
+            <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl flex-1 flex flex-col min-h-[300px] overflow-hidden relative transition-colors duration-300">
+                <div class="absolute top-3 left-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 z-10 pointer-events-none shadow-sm uppercase tracking-wide" data-i18n="t2dCross">
+                    2D Cross-Section
+                </div>
+                <div class="flex-grow w-full h-full" id="canvas2dContainer">
+                    <canvas id="canvas2d" class="w-full h-full touch-none"></canvas>
+                </div>
+            </div>
+
+            <!-- 3D View -->
+            <div class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl flex-1 flex flex-col min-h-[300px] overflow-hidden relative transition-colors duration-300">
+                <div class="absolute top-3 left-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 z-10 pointer-events-none shadow-sm uppercase tracking-wide" data-i18n="t3dRender">
+                    3D Render
+                </div>
+                <div class="absolute bottom-3 right-4 bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 pointer-events-none shadow-sm" data-i18n="controls">
+                    Drag: Rotate | Scroll: Zoom
+                </div>
+                <div class="flex-grow w-full h-full" id="canvas3dContainer">
+                    <!-- ThreeJS Canvas -->
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 py-6 px-4 mt-auto transition-colors duration-300 shrink-0 z-10">
+        <div class="max-w-[1600px] mx-auto flex flex-col items-center justify-center gap-1">
+            <div class="text-center text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed px-4" data-i18n="copyright">
+                &copy; Copyright of VidYash AgriTech India Pvt Ltd &amp; DMLRD Tech Pte Ltd. All rights reserved.
+            </div>
+            <div class="text-center text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                Love it? Need Help? Drop us email: <a href="mailto:support@dmlrd.tech?subject=Well%20pages:%20Need%20Help:" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors font-semibold">support@dmlrd.tech</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Init theme right away to avoid flash
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+        if (currentTheme === 'dark') document.documentElement.classList.add('dark');
+
+        // Translations
+        const translations = {
+            en: {
+                appTitle: "Dynamic Well Volume Calculator & Visualizer", appTitleMobile: "Dynamic Well Calc", copyright: "© Copyright of VidYash AgriTech India Pvt Ltd & DMLRD Tech Pte Ltd. All rights reserved.",
+                globalTop: "Top Radius:", meters: "Meters", feet: "Feet",
+                light: "Light", dark: "Dark",
+                wellSections: "Well Sections", addSection: "Add Section", totalVolume: "Total Volume", liters: "Liters",
+                t2dCross: "2D Cross-Section Profile", t3dRender: "3D Render",
+                controls: "Left Click: Rotate | Right Click: Pan | Scroll: Zoom",
+                section: "Section", topInherits: "Top Radius inherits:", height: "Height", bottomRadius: "Bottom Radius", remove: "Remove Section"
+            },
+            hi: {
+                appTitle: "डायनामिक कुआं आयतन कैलकुलेटर और विज़ुअलाइज़र", appTitleMobile: "डायनामिक कुआं कैलक", copyright: "© विद्याश एग्रीटेक इंडिया प्राइवेट लिमिटेड और डीएमएलआरडी टेक पीटीई लिमिटेड का कॉपीराइट। सर्वाधिकार सुरक्षित।",
+                globalTop: "शीर्ष त्रिज्या:", meters: "मीटर", feet: "फीट",
+                light: "हल्का (Light)", dark: "गहरा (Dark)",
+                wellSections: "कुएं के खंड", addSection: "खंड जोड़ें", totalVolume: "कुल आयतन", liters: "लीटर",
+                t2dCross: "2D क्रॉस-सेक्शन प्रोफ़ाइल", t3dRender: "3D रेंडर",
+                controls: "लेफ्ट क्लिक: घुमाएं | राइट क्लिक: पैन | स्क्रॉल: ज़ूम",
+                section: "खंड", topInherits: "शीर्ष त्रिज्या विरासत में मिली:", height: "ऊंचाई", bottomRadius: "निचली त्रिज्या", remove: "खंड हटाएं"
+            },
+            mr: {
+                appTitle: "डायनॅमिक विहीर आकारमान कॅल्क्युलेटर आणि व्हिज्युअलायझर", appTitleMobile: "डायनॅमिक विहीर कॅल्क", copyright: "© विद्याश ॲग्रीटेक इंडिया प्रा. लि. आणि डीएमएलआरडी टेक प्रा. लि. चे कॉपीराइट. सर्व हक्क राखीव.",
+                globalTop: "शीर्ष त्रिज्या:", meters: "मीटर", feet: "फूट",
+                light: "प्रकाश (Light)", dark: "गडद (Dark)",
+                wellSections: "विहिरीचे विभाग", addSection: "विभाग जोडा", totalVolume: "एकूण आकारमान", liters: "लिटर",
+                t2dCross: "2D क्रॉस-सेक्शन प्रोफाइल", t3dRender: "3D रेंडर",
+                controls: "लेफ्ट क्लिक: फिरवा | राईट क्लिक: पॅन | स्क्रोल: झूम",
+                section: "विभाग", topInherits: "शीर्ष त्रिज्या वारसा:", height: "उंची", bottomRadius: "तळाची त्रिज्या", remove: "विभाग काढा"
+            }
+        };
+        let currentLang = 'en';
+
+        // State
+        let sections = [
+            { id: generateId(), height: 10, bottomRadius: 4.5 },
+            { id: generateId(), height: 12, bottomRadius: 4 },
+            { id: generateId(), height: 15, bottomRadius: 3.5 },
+            { id: generateId(), height: 20, bottomRadius: 2.5 }
+        ];
+
+        // Color palette for dynamic sections (loops if more sections than colors)
+        const palette = [
+            { hex: 0x10b981, fill: 'rgba(16, 185, 129, 0.4)', stroke: '#10b981' }, // Emerald
+            { hex: 0x0ea5e9, fill: 'rgba(14, 165, 233, 0.4)', stroke: '#0ea5e9' }, // Sky
+            { hex: 0x8b5cf6, fill: 'rgba(139, 92, 246, 0.4)', stroke: '#8b5cf6' }, // Violet
+            { hex: 0xf59e0b, fill: 'rgba(245, 158, 11, 0.4)', stroke: '#f59e0b' }, // Amber
+            { hex: 0xef4444, fill: 'rgba(239, 68, 68, 0.4)',  stroke: '#ef4444' }, // Red
+            { hex: 0xec4899, fill: 'rgba(236, 72, 153, 0.4)', stroke: '#ec4899' }  // Pink
+        ];
+
+        // DOM Elements
+        const container = document.getElementById('sectionsContainer');
+        const addBtn = document.getElementById('addSectionBtn');
+        const globalTopRadiusInput = document.getElementById('globalTopRadius');
+        const unitSelect = document.getElementById('unitSelect');
+        const totalVolumeOutput = document.getElementById('totalVolumeOutput');
+        const langSelect = document.getElementById('langSelect');
+        const themeSelect = document.getElementById('themeSelect');
+        themeSelect.value = currentTheme;
+        
+        // 2D Setup
+        const canvas2d = document.getElementById('canvas2d');
+        const ctx2d = canvas2d.getContext('2d');
+        const container2d = document.getElementById('canvas2dContainer');
+
+        // 3D Setup
+        const container3d = document.getElementById('canvas3dContainer');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, container3d.clientWidth / container3d.clientHeight, 0.1, 2000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container3d.clientWidth, container3d.clientHeight);
+        renderer.setClearColor(currentTheme === 'dark' ? 0x0f172a : 0xf8fafc, 1); 
+        container3d.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(20, 40, 20);
+        scene.add(dirLight);
+        const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        backLight.position.set(-20, 10, -20);
+        scene.add(backLight);
+
+        const wellGroup = new THREE.Group();
+        scene.add(wellGroup);
+
+        // Utilities
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        function getColor(index) {
+            return palette[index % palette.length];
+        }
+
+        const resizeObserver = new ResizeObserver(entries => {
+            window.requestAnimationFrame(() => {
+                if (!Array.isArray(entries) || !entries.length) return;
+                for (let entry of entries) {
+                    if (entry.target === container3d && container3d.clientWidth > 0) {
+                        camera.aspect = container3d.clientWidth / container3d.clientHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(container3d.clientWidth, container3d.clientHeight);
+                    }
+                    if (entry.target === container2d && container2d.clientWidth > 0) {
+                        canvas2d.width = container2d.clientWidth;
+                        canvas2d.height = container2d.clientHeight;
+                        drawVisuals();
+                    }
+                }
+            });
+        });
+        
+        resizeObserver.observe(container3d);
+        resizeObserver.observe(container2d);
+
+        // Render UI
+        function renderSectionsUI() {
+            container.innerHTML = '';
+            const t = translations[currentLang];
+            
+            sections.forEach((sec, index) => {
+                const isLast = index === sections.length - 1;
+                const isFirst = index === 0;
+                
+                let topRInfo = isFirst ? parseFloat(globalTopRadiusInput.value) || 0 : sections[index-1].bottomRadius;
+                
+                const sectionHtml = `
+                    <div class="section-item bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm relative transition-colors duration-300" data-id="${sec.id}">
+                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100 dark:border-slate-700/50">
+                            <h3 class="text-sm font-bold flex items-center gap-2" style="color: ${getColor(index).stroke}">
+                                <span class="w-3 h-3 rounded-full shadow-sm" style="background-color: ${getColor(index).stroke}"></span>
+                                ${t.section} ${index + 1}
+                            </h3>
+                            ${sections.length > 1 ? `<button onclick="removeSection('${sec.id}')" class="bg-slate-100 hover:bg-red-50 dark:bg-slate-700 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 transition-colors p-2 rounded-lg" title="${t.remove}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>` : ''}
+                        </div>
+                        <div class="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg inline-block border border-slate-100 dark:border-slate-700/50">
+                            ${t.topInherits} <span class="font-mono text-slate-800 dark:text-slate-200 font-bold ml-1">${topRInfo}</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">${t.height}</label>
+                                <input type="number" step="any" min="0.1" value="${sec.height}" oninput="updateSectionData('${sec.id}', 'height', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[${getColor(index).stroke}]/50 focus:border-[${getColor(index).stroke}] transition-all shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">${t.bottomRadius}</label>
+                                <input type="number" step="any" min="0.1" value="${sec.bottomRadius}" oninput="updateSectionData('${sec.id}', 'bottomRadius', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[${getColor(index).stroke}]/50 focus:border-[${getColor(index).stroke}] transition-all shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', sectionHtml);
+            });
+            
+            calculateAndRender();
+        }
+
+        // Actions
+        addBtn.addEventListener('click', () => {
+            // Give new section sensible defaults based on last section
+            const lastSec = sections[sections.length - 1];
+            sections.push({
+                id: generateId(),
+                height: 10,
+                bottomRadius: lastSec ? Math.max(0.1, lastSec.bottomRadius - 1) : 4
+            });
+            renderSectionsUI();
+        });
+
+        window.removeSection = (id) => {
+            if (sections.length <= 1) return;
+            sections = sections.filter(s => s.id !== id);
+            renderSectionsUI();
+        };
+
+        window.updateSectionData = (id, field, value) => {
+            const val = parseFloat(value);
+            const section = sections.find(s => s.id === id);
+            if(section) {
+                section[field] = (isNaN(val) || val <= 0) ? 0.1 : val;
+            }
+            // Debounce recalculation slightly for smooth typing
+            clearTimeout(window.calcTimeout);
+            window.calcTimeout = setTimeout(calculateAndRender, 100);
+        };
+
+        // Listeners for Global Inputs
+        globalTopRadiusInput.addEventListener('input', () => {
+            clearTimeout(window.calcTimeout);
+            window.calcTimeout = setTimeout(() => {
+                renderSectionsUI(); // Re-render UI to update inheritance text
+            }, 100);
+        });
+
+        unitSelect.addEventListener('change', calculateAndRender);
+
+        // Computation & Rendering
+        function calculateAndRender() {
+            const unit = unitSelect.value;
+            let globalTop = parseFloat(globalTopRadiusInput.value);
+            if (isNaN(globalTop) || globalTop <= 0) globalTop = 0.1;
+
+            let totalVolumeLiters = 0;
+            const lengthToMeters = unit === 'feet' ? 0.3048 : 1.0;
+
+            // Prepare computed geometry data
+            window.computedSections = [];
+            let currentTopR = globalTop;
+
+            sections.forEach(sec => {
+                const hM = sec.height * lengthToMeters;
+                const rTopM = currentTopR * lengthToMeters;
+                const rBotM = sec.bottomRadius * lengthToMeters;
+                
+                // Volume of Frustum
+                const volM3 = (Math.PI / 3) * hM * (Math.pow(rTopM, 2) + (rTopM * rBotM) + Math.pow(rBotM, 2));
+                totalVolumeLiters += volM3 * 1000;
+
+                window.computedSections.push({
+                    topR: currentTopR,
+                    botR: sec.bottomRadius,
+                    h: sec.height
+                });
+
+                currentTopR = sec.bottomRadius; // Next section's top is current section's bottom
+            });
+
+            // Update DOM output
+            const t = translations[currentLang];
+            totalVolumeOutput.innerHTML = `${totalVolumeLiters.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-lg font-normal text-slate-300" data-i18n="liters">${t.liters}</span>`;
+            
+            drawVisuals();
+        }
+
+        function drawVisuals() {
+            if (!window.computedSections) return;
+            
+            const data = window.computedSections;
+            let totalH = data.reduce((sum, sec) => sum + sec.h, 0);
+            let maxR = Math.max(...data.map(s => Math.max(s.topR, s.botR)));
+            const isDark = document.documentElement.classList.contains('dark');
+
+            // === 2D Render ===
+            ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
+            const padding = 40;
+            const availH = canvas2d.height - padding * 2;
+            const availW = canvas2d.width - padding * 2;
+            
+            const scale = Math.min(availW / (maxR * 2.2), availH / totalH);
+            const centerX = canvas2d.width / 2;
+            let currentY2d = padding + (availH - totalH * scale) / 2;
+
+            // Center dotted line
+            ctx2d.beginPath();
+            ctx2d.moveTo(centerX, currentY2d - 20);
+            ctx2d.lineTo(centerX, currentY2d + totalH * scale + 20);
+            ctx2d.setLineDash([4, 6]);
+            ctx2d.strokeStyle = isDark ? '#334155' : '#cbd5e1';
+            ctx2d.stroke();
+            ctx2d.setLineDash([]);
+
+            // Draw each frustum in 2D
+            data.forEach((sec, idx) => {
+                const color = getColor(idx);
+                const wT = sec.topR * scale;
+                const wB = sec.botR * scale;
+                const h = sec.h * scale;
+
+                ctx2d.beginPath();
+                ctx2d.moveTo(centerX - wT, currentY2d);
+                ctx2d.lineTo(centerX + wT, currentY2d);
+                ctx2d.lineTo(centerX + wB, currentY2d + h);
+                ctx2d.lineTo(centerX - wB, currentY2d + h);
+                ctx2d.closePath();
+
+                ctx2d.fillStyle = color.fill;
+                ctx2d.fill();
+                ctx2d.lineWidth = 1.5;
+                ctx2d.strokeStyle = color.stroke;
+                ctx2d.stroke();
+
+                currentY2d += h;
+            });
+
+            // === 3D Render ===
+            // Clean up old meshes
+            while(wellGroup.children.length > 0){ 
+                let child = wellGroup.children[0];
+                wellGroup.remove(child); 
+                if(child.geometry) child.geometry.dispose();
+                if(child.material) {
+                    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                    else child.material.dispose();
+                }
+            }
+
+            let currentY3d = totalH / 2; // Start from top in Three.js coordinate system
+            
+            data.forEach((sec, idx) => {
+                const color = getColor(idx);
+                const geo = new THREE.CylinderGeometry(sec.topR, sec.botR, sec.h, 64);
+                
+                const mat = new THREE.MeshPhongMaterial({ 
+                    color: color.hex,
+                    transparent: true,
+                    opacity: 0.9,
+                    shininess: 90,
+                    specular: 0x222222,
+                    side: THREE.DoubleSide
+                });
+                
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.y = currentY3d - (sec.h / 2);
+                
+                // Edges
+                const edgesGeo = new THREE.EdgesGeometry(geo);
+                const edgesMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
+                const wire = new THREE.LineSegments(edgesGeo, edgesMat);
+                mesh.add(wire);
+
+                wellGroup.add(mesh);
+                currentY3d -= sec.h;
+            });
+
+            // Auto-adjust Camera
+            const dist = Math.max(totalH, maxR * 2) * 1.6;
+            camera.position.set(dist * 0.6, dist * 0.4, dist);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Language Switcher
+        function updateLanguage() {
+            currentLang = langSelect.value;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    el.textContent = translations[currentLang][key];
+                }
+            });
+            renderSectionsUI(); // Re-render dynamic sections with new language
+        }
+
+        langSelect.addEventListener('change', updateLanguage);
+
+        themeSelect.addEventListener('change', (e) => {
+            currentTheme = e.target.value;
+            localStorage.setItem('theme', currentTheme);
+            if (currentTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                renderer.setClearColor(0x0f172a, 1);
+            } else {
+                document.documentElement.classList.remove('dark');
+                renderer.setClearColor(0xf8fafc, 1);
+            }
+            drawVisuals();
+        });
+
+        // Boot
+        updateLanguage();
+        animate();
+
+    </script>
+</body>
+</html>

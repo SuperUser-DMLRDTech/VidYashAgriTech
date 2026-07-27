@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Well Volume Calculator & Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        canvas {
+            display: block;
+            outline: none;
+        }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        /* Prevent scroll on touch devices while interacting with 3D */
+        #canvas3dContainer canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-[#020617] dark:text-[#f8fafc] transition-colors duration-300">
+    <header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 transition-colors duration-300 shadow-sm">
+        <div class="max-w-[1600px] mx-auto px-4 py-3 md:py-4 flex flex-col gap-4">
+            
+            <!-- Top Row: Logos and Title -->
+            <div class="flex items-center justify-between gap-2 sm:gap-4">
+                <!-- Left Logo: VidYash -->
+                <a href="#" class="inline-block shrink-0 transition-transform hover:scale-105">
+                    <img src="VidYash AgriTech - logo primary - light theme (3).png" alt="VidYash AgriTech Logo" class="block dark:hidden h-8 sm:h-10 md:h-12 object-contain transition-opacity">
+                    <img src="VidYash AgriTech - logo primary - dark theme.png" alt="VidYash AgriTech Logo" class="hidden dark:block h-8 sm:h-10 md:h-12 object-contain transition-opacity">
+                </a>
+                
+                <!-- Title -->
+                <h1 class="text-lg sm:text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-teal-500 dark:from-blue-400 dark:to-teal-400 text-center leading-tight flex-1">
+                    <span class="hidden sm:inline" data-i18n="appTitle">Well Volume Calculator & Visualizer</span>
+                    <span class="sm:hidden text-base" data-i18n="appTitleMobile">Well Volume Calc</span>
+                </h1>
+                
+                <!-- Right Logo: DMLRD -->
+                <a href="#" class="inline-block shrink-0 transition-transform hover:scale-105">
+                    <img src="DMLRD - logo primary - LR 1k.png" alt="DMLRD Tech Logo" class="block dark:hidden h-8 sm:h-10 md:h-12 object-contain transition-opacity">
+                    <img src="DMLRD - logo secondary half white - HR 1k.png" alt="DMLRD Tech Logo" class="hidden dark:block h-8 sm:h-10 md:h-12 object-contain transition-opacity">
+                </a>
+            </div>
+            
+            <!-- Bottom Row: Controls -->
+            <div class="w-full overflow-x-auto pb-1 scrollbar-hide border-t border-slate-200/60 dark:border-slate-800/60 pt-3">
+                <div class="flex items-center justify-between gap-4 min-w-max w-full">
+                    
+                    <!-- Left: Language -->
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700">
+                            <select id="langSelect" aria-label="Language" class="bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer">
+                                <option value="en">English</option>
+                                <option value="hi">हिंदी</option>
+                                <option value="mr">मराठी</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Center Controls -->
+                    <div class="flex items-center gap-3 md:gap-4 flex-1 justify-center">
+                        <div class="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700">
+                            <select id="unitSelect" aria-label="Unit" class="bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer">
+                                <option value="meters" data-i18n="meters">Meters</option>
+                                <option value="feet" data-i18n="feet">Feet</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Right: Theme -->
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700">
+                            <select id="themeSelect" aria-label="Theme" class="bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer">
+                                <option value="dark" data-i18n="dark">Dark</option>
+                                <option value="light" data-i18n="light">Light</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            
+        </div>
+    </header>
+
+    <main class="flex-grow w-full max-w-[1600px] mx-auto p-3 sm:p-4 md:p-6 lg:p-8 flex flex-col lg:grid lg:grid-cols-12 gap-6">
+        
+        <!-- Input Panel: Flows naturally on mobile, strict height with scroll on desktop -->
+        <div class="lg:col-span-4 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 shadow-xl flex flex-col w-full h-auto lg:h-[calc(100vh-140px)] lg:overflow-y-auto transition-colors duration-300">
+            <h2 class="text-lg font-bold mb-5 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 pb-3" data-i18n="wellDimensions">Well Dimensions</h2>
+            
+            <form id="calculatorForm" class="space-y-5 sm:space-y-6">
+                <!-- Global/Top Radius -->
+                <div class="bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide" data-i18n="topRadiusA">Top Radius (A)</label>
+                    <input type="number" id="radiusA" step="any" min="0.1" value="5" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-4 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-sm">
+                </div>
+
+                <!-- Section W -->
+                <div class="bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60 transition-colors">
+                    <h3 class="text-sm font-bold text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span> <span data-i18n="sectionW">Section W (Top)</span>
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase" data-i18n="heightH1">Height (H1)</label>
+                            <input type="number" id="height1" step="any" min="0.1" value="10" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase" data-i18n="bottomRadiusB">Bottom Radius (B)</label>
+                            <input type="number" id="radiusB" step="any" min="0.1" value="4.5" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section X -->
+                <div class="bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60 transition-colors">
+                    <h3 class="text-sm font-bold text-teal-600 dark:text-teal-400 mb-4 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.5)]"></span> <span data-i18n="sectionX">Section X</span>
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase" data-i18n="heightH2">Height (H2)</label>
+                            <input type="number" id="height2" step="any" min="0.1" value="12" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase" data-i18n="bottomRadiusC">Bottom Radius (C)</label>
+                            <input type="number" id="radiusC" step="any" min="0.1" value="4" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all shadow-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Y -->
+                <div class="bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60 transition-colors">
+                    <h3 class="text-sm font-bold text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]"></span> <span data-i18n="sectionY">Section Y</span>
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase" data-i18n="heightH3">Height (H3)</label>
+                            <input type="number" id="height3" step="any" min="0.1" value="15" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase" data-i18n="bottomRadiusD">Bottom Radius (D)</label>
+                            <input type="number" id="radiusD" step="any" min="0.1" value="3.5" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Z -->
+                <div class="bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60 transition-colors">
+                    <h3 class="text-sm font-bold text-purple-600 dark:text-purple-400 mb-4 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></span> <span data-i18n="sectionZ">Section Z (Bottom)</span>
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase" data-i18n="heightH4">Height (H4)</label>
+                            <input type="number" id="height4" step="any" min="0.1" value="20" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase" data-i18n="bottomRadiusE">Bottom Radius (E)</label>
+                            <input type="number" id="radiusE" step="any" min="0.1" value="2.5" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all shadow-sm">
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Visualizations and Output -->
+        <div class="lg:col-span-8 flex flex-col gap-6 w-full h-full lg:h-[calc(100vh-140px)]">
+            
+            <!-- Output Dashboard -->
+            <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-700 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0 transition-colors duration-300">
+                <div>
+                    <h2 class="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1" data-i18n="totalVolume">Total Volume</h2>
+                    <div class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight" id="totalVolumeOutput">
+                        0.00 <span class="text-lg sm:text-xl text-blue-600 dark:text-blue-400 font-semibold" data-i18n="liters">Liters</span>
+                    </div>
+                </div>
+                <div class="text-left sm:text-right bg-slate-100 dark:bg-slate-900 px-4 py-2 rounded-lg border border-slate-200/60 dark:border-slate-700/60 w-full sm:w-auto">
+                    <p class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400" data-i18n="basedOn">Based on 4 stacked frustums.</p>
+                    <p class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400" data-i18n="conversion">1m³ = 1000 Liters.</p>
+                </div>
+            </div>
+
+            <!-- Canvas Grid: Fluid scaling -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow min-h-[600px] lg:min-h-0">
+                
+                <!-- 2D View -->
+                <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl flex flex-col overflow-hidden transition-colors duration-300">
+                    <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 flex justify-between items-center shrink-0">
+                        <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide" data-i18n="t2dCrossSection">2D Cross-Section</h3>
+                    </div>
+                    <div class="flex-grow relative w-full h-full min-h-[300px]" id="canvas2dContainer">
+                        <canvas id="canvas2d" class="absolute top-0 left-0 w-full h-full touch-none"></canvas>
+                    </div>
+                </div>
+
+                <!-- 3D View -->
+                <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl flex flex-col overflow-hidden transition-colors duration-300">
+                    <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 flex justify-between items-center shrink-0">
+                        <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide" data-i18n="t3dVisualization">3D Visualization</h3>
+                        <span class="text-[10px] sm:text-xs font-medium bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-400" data-i18n="dragToRotate">Drag to rotate</span>
+                    </div>
+                    <div class="flex-grow relative w-full h-full min-h-[300px]" id="canvas3dContainer">
+                        <!-- ThreeJS Canvas will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 py-6 px-4 mt-auto transition-colors duration-300 z-10">
+        <div class="max-w-[1600px] mx-auto flex flex-col items-center justify-center gap-1">
+            <div class="text-center text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed px-4" data-i18n="copyright">
+                &copy; Copyright of VidYash AgriTech India Pvt Ltd &amp; DMLRD Tech Pte Ltd. All rights reserved.
+            </div>
+            <div class="text-center text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                Love it? Need Help? Drop us email: <a href="mailto:support@dmlrd.tech?subject=Well%20pages:%20Need%20Help:" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors font-semibold">support@dmlrd.tech</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize theme early
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+        if (currentTheme === 'dark') document.documentElement.classList.add('dark');
+
+        // Translations
+        const translations = {
+            en: {
+                appTitle: "Well Volume Calculator & Visualizer", appTitleMobile: "Well Volume Calc", copyright: "© Copyright of VidYash AgriTech India Pvt Ltd & DMLRD Tech Pte Ltd. All rights reserved.",
+                lang: "Language:", unit: "Unit:", meters: "Meters", feet: "Feet",
+                theme: "Theme:", light: "Light", dark: "Dark",
+                wellDimensions: "Well Dimensions", topRadiusA: "Top Radius (A)",
+                sectionW: "Section W (Top)", heightH1: "Height (H1)", bottomRadiusB: "Bottom Radius (B)",
+                sectionX: "Section X", heightH2: "Height (H2)", bottomRadiusC: "Bottom Radius (C)",
+                sectionY: "Section Y", heightH3: "Height (H3)", bottomRadiusD: "Bottom Radius (D)",
+                sectionZ: "Section Z (Bottom)", heightH4: "Height (H4)", bottomRadiusE: "Bottom Radius (E)",
+                totalVolume: "Total Volume", liters: "Liters",
+                basedOn: "Based on 4 stacked frustums.", conversion: "1m³ = 1000 Liters.",
+                t2dCrossSection: "2D Cross-Section", t3dVisualization: "3D Visualization", dragToRotate: "Drag to rotate",
+                secLabel: "Sec"
+            },
+            hi: {
+                appTitle: "कुआं आयतन कैलकुलेटर और विज़ुअलाइज़र", appTitleMobile: "कुआं आयतन कैलक", copyright: "© विद्याश एग्रीटेक इंडिया प्राइवेट लिमिटेड और डीएमएलआरडी टेक पीटीई लिमिटेड का कॉपीराइट। सर्वाधिकार सुरक्षित।",
+                lang: "भाषा:", unit: "इकाई:", meters: "मीटर", feet: "फीट",
+                theme: "थीम:", light: "हल्का (Light)", dark: "गहरा (Dark)",
+                wellDimensions: "कुएं के आयाम", topRadiusA: "शीर्ष त्रिज्या (A)",
+                sectionW: "खंड W (शीर्ष)", heightH1: "ऊंचाई (H1)", bottomRadiusB: "निचली त्रिज्या (B)",
+                sectionX: "खंड X", heightH2: "ऊंचाई (H2)", bottomRadiusC: "निचली त्रिज्या (C)",
+                sectionY: "खंड Y", heightH3: "ऊंचाई (H3)", bottomRadiusD: "निचली त्रिज्या (D)",
+                sectionZ: "खंड Z (तल)", heightH4: "ऊंचाई (H4)", bottomRadiusE: "निचली त्रिज्या (E)",
+                totalVolume: "कुल आयतन", liters: "लीटर",
+                basedOn: "4 स्टैक्ड छिन्नकों पर आधारित।", conversion: "1m³ = 1000 लीटर।",
+                t2dCrossSection: "2D क्रॉस-सेक्शन", t3dVisualization: "3D विज़ुअलाइज़ेशन", dragToRotate: "घुमाने के लिए खींचें",
+                secLabel: "खंड"
+            },
+            mr: {
+                appTitle: "विहीर आकारमान कॅल्क्युलेटर आणि व्हिज्युअलायझर", appTitleMobile: "विहीर आकारमान कॅल्क", copyright: "© विद्याश ॲग्रीटेक इंडिया प्रा. लि. आणि डीएमएलआरडी टेक प्रा. लि. चे कॉपीराइट. सर्व हक्क राखीव.",
+                lang: "भाषा:", unit: "एकक:", meters: "मीटर", feet: "फूट",
+                theme: "थीम:", light: "प्रकाश (Light)", dark: "गडद (Dark)",
+                wellDimensions: "विहिरीचे परिमाण", topRadiusA: "शीर्ष त्रिज्या (A)",
+                sectionW: "विभाग W (शीर्ष)", heightH1: "उंची (H1)", bottomRadiusB: "तळाची त्रिज्या (B)",
+                sectionX: "विभाग X", heightH2: "उंची (H2)", bottomRadiusC: "तळाची त्रिज्या (C)",
+                sectionY: "विभाग Y", heightH3: "उंची (H3)", bottomRadiusD: "तळाची त्रिज्या (D)",
+                sectionZ: "विभाग Z (तळ)", heightH4: "उंची (H4)", bottomRadiusE: "तळाची त्रिज्या (E)",
+                totalVolume: "एकूण आकारमान", liters: "लिटर",
+                basedOn: "4 स्टॅक केलेल्या फ्रस्टमवर आधारित.", conversion: "1m³ = 1000 लिटर.",
+                t2dCrossSection: "2D क्रॉस-सेक्शन", t3dVisualization: "3D व्हिज्युअलायझेशन", dragToRotate: "फिरवण्यासाठी ड्रॅग करा",
+                secLabel: "विभाग"
+            }
+        };
+        let currentLang = 'en';
+
+        // DOM Elements
+        const inputs = {
+            rA: document.getElementById('radiusA'),
+            rB: document.getElementById('radiusB'),
+            rC: document.getElementById('radiusC'),
+            rD: document.getElementById('radiusD'),
+            rE: document.getElementById('radiusE'),
+            h1: document.getElementById('height1'),
+            h2: document.getElementById('height2'),
+            h3: document.getElementById('height3'),
+            h4: document.getElementById('height4'),
+            unit: document.getElementById('unitSelect')
+        };
+        const volumeOutput = document.getElementById('totalVolumeOutput');
+        const canvas2d = document.getElementById('canvas2d');
+        const ctx2d = canvas2d.getContext('2d');
+        const container2d = document.getElementById('canvas2dContainer');
+        const container3d = document.getElementById('canvas3dContainer');
+        const langSelect = document.getElementById('langSelect');
+        const themeSelect = document.getElementById('themeSelect');
+        themeSelect.value = currentTheme;
+
+        // State
+        let sectionsData = [];
+        let totalVolumeLiters = 0;
+
+        // Colors for visual distinction
+        const colors = [
+            { fill: 'rgba(59, 130, 246, 0.4)', stroke: '#3b82f6', hex: 0x3b82f6 }, // Blue
+            { fill: 'rgba(20, 184, 166, 0.4)', stroke: '#14b8a6', hex: 0x14b8a6 }, // Teal
+            { fill: 'rgba(99, 102, 241, 0.4)', stroke: '#6366f1', hex: 0x6366f1 }, // Indigo
+            { fill: 'rgba(168, 85, 247, 0.4)', stroke: '#a855f7', hex: 0xa855f7 }  // Purple
+        ];
+
+        // Three.js Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container3d.clientWidth, container3d.clientHeight);
+        renderer.setClearColor(currentTheme === 'dark' ? 0x1e293b : 0xf8fafc, 1); 
+        container3d.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        // Ambient & Directional Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        // Group to hold all section meshes
+        const wellGroup = new THREE.Group();
+        scene.add(wellGroup);
+
+        // Responsive Resize Observer instead of window.onresize
+        const resizeObserver = new ResizeObserver(entries => {
+            window.requestAnimationFrame(() => {
+                if (!Array.isArray(entries) || !entries.length) return;
+                for (let entry of entries) {
+                    if (entry.target === container3d && container3d.clientWidth > 0) {
+                        camera.aspect = container3d.clientWidth / container3d.clientHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(container3d.clientWidth, container3d.clientHeight);
+                    }
+                    if (entry.target === container2d && container2d.clientWidth > 0) {
+                        canvas2d.width = container2d.clientWidth;
+                        canvas2d.height = container2d.clientHeight;
+                        draw2D();
+                    }
+                }
+            });
+        });
+        
+        resizeObserver.observe(container3d);
+        resizeObserver.observe(container2d);
+
+        // Main Logic
+        function parseInput(el) {
+            let val = parseFloat(el.value);
+            return (isNaN(val) || val <= 0) ? 0.1 : val; // Fallback to 0.1 to avoid errors
+        }
+
+        function calculateVolume() {
+            const unit = inputs.unit.value;
+            
+            const rA = parseInput(inputs.rA);
+            const rB = parseInput(inputs.rB);
+            const rC = parseInput(inputs.rC);
+            const rD = parseInput(inputs.rD);
+            const rE = parseInput(inputs.rE);
+            
+            const h1 = parseInput(inputs.h1);
+            const h2 = parseInput(inputs.h2);
+            const h3 = parseInput(inputs.h3);
+            const h4 = parseInput(inputs.h4);
+
+            sectionsData = [
+                { topR: rA, botR: rB, h: h1, label: 'W' },
+                { topR: rB, botR: rC, h: h2, label: 'X' },
+                { topR: rC, botR: rD, h: h3, label: 'Y' },
+                { topR: rD, botR: rE, h: h4, label: 'Z' }
+            ];
+
+            totalVolumeLiters = 0;
+            
+            // Conversion factors to Base Unit (Meters) for calculation
+            const lengthToMeters = unit === 'feet' ? 0.3048 : 1.0;
+
+            sectionsData.forEach(sec => {
+                // Volume of Frustum = (pi/3) * h * (R^2 + R*r + r^2)
+                // Convert inputs to meters first
+                const hM = sec.h * lengthToMeters;
+                const rTopM = sec.topR * lengthToMeters;
+                const rBotM = sec.botR * lengthToMeters;
+                
+                const volCubicMeters = (Math.PI / 3) * hM * (Math.pow(rTopM, 2) + (rTopM * rBotM) + Math.pow(rBotM, 2));
+                
+                sec.volumeM3 = volCubicMeters;
+                totalVolumeLiters += volCubicMeters * 1000; // 1 m^3 = 1000 Liters
+            });
+
+            // Update UI
+            volumeOutput.innerHTML = `${totalVolumeLiters.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-xl text-blue-600 dark:text-blue-400 font-medium transition-colors" data-i18n="liters">${translations[currentLang].liters}</span>`;
+            
+            draw2D();
+            update3D();
+        }
+
+        function draw2D() {
+            ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
+            const isDark = document.documentElement.classList.contains('dark');
+            
+            let totalH = sectionsData.reduce((sum, sec) => sum + sec.h, 0);
+            let maxR = Math.max(...sectionsData.map(s => Math.max(s.topR, s.botR)));
+            
+            // Calculate scale to fit canvas with padding
+            const padding = 40;
+            const availableHeight = canvas2d.height - padding * 2;
+            const availableWidth = canvas2d.width - padding * 2;
+            
+            const scaleY = availableHeight / totalH;
+            const scaleX = availableWidth / (maxR * 2);
+            const scale = Math.min(scaleX, scaleY);
+            
+            const centerX = canvas2d.width / 2;
+            let currentY = padding + (availableHeight - totalH * scale) / 2; // Center vertically
+
+            // Draw center line
+            ctx2d.beginPath();
+            ctx2d.moveTo(centerX, currentY - 20);
+            ctx2d.lineTo(centerX, currentY + totalH * scale + 20);
+            ctx2d.setLineDash([5, 5]);
+            ctx2d.strokeStyle = isDark ? '#475569' : '#94a3b8';
+            ctx2d.stroke();
+            ctx2d.setLineDash([]);
+
+            // Draw sections
+            sectionsData.forEach((sec, idx) => {
+                const color = colors[idx];
+                const topW = sec.topR * scale;
+                const botW = sec.botR * scale;
+                const h = sec.h * scale;
+
+                ctx2d.beginPath();
+                ctx2d.moveTo(centerX - topW, currentY);
+                ctx2d.lineTo(centerX + topW, currentY);
+                ctx2d.lineTo(centerX + botW, currentY + h);
+                ctx2d.lineTo(centerX - botW, currentY + h);
+                ctx2d.closePath();
+
+                ctx2d.fillStyle = color.fill;
+                ctx2d.fill();
+                
+                ctx2d.lineWidth = 2;
+                ctx2d.strokeStyle = color.stroke;
+                ctx2d.stroke();
+                
+                // Labels
+                ctx2d.fillStyle = isDark ? '#f8fafc' : '#0f172a';
+                ctx2d.font = '12px Inter';
+                ctx2d.textAlign = 'left';
+                ctx2d.fillText(`${translations[currentLang].secLabel} ${sec.label}`, centerX + Math.max(topW, botW) + 10, currentY + h/2 + 4);
+
+                currentY += h;
+            });
+        }
+
+        function update3D() {
+            // Clear existing
+            while(wellGroup.children.length > 0){ 
+                let child = wellGroup.children[0];
+                wellGroup.remove(child); 
+                if(child.geometry) child.geometry.dispose();
+                if(child.material) {
+                    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                    else child.material.dispose();
+                }
+            }
+
+            let totalH = sectionsData.reduce((sum, sec) => sum + sec.h, 0);
+            let maxR = Math.max(...sectionsData.map(s => Math.max(s.topR, s.botR)));
+            
+            // Start from top, Y is upwards in ThreeJS
+            let currentY = totalH / 2; 
+
+            sectionsData.forEach((sec, idx) => {
+                const geometry = new THREE.CylinderGeometry(sec.topR, sec.botR, sec.h, 32);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: colors[idx].hex,
+                    transparent: true,
+                    opacity: 0.85,
+                    shininess: 80,
+                    side: THREE.DoubleSide
+                });
+                
+                const cylinder = new THREE.Mesh(geometry, material);
+                
+                // Position center of cylinder
+                const yPos = currentY - (sec.h / 2);
+                cylinder.position.y = yPos;
+                
+                // Add edges for better visibility
+                const edgesGeometry = new THREE.EdgesGeometry(geometry);
+                const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+                const wireframe = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+                cylinder.add(wireframe);
+
+                wellGroup.add(cylinder);
+                
+                currentY -= sec.h; // Move down for next section
+            });
+
+            // Adjust Camera
+            const distance = Math.max(totalH, maxR * 2) * 1.5;
+            camera.position.set(distance * 0.7, distance * 0.5, distance);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Bind events
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', calculateVolume);
+        });
+
+        // Language Switcher Logic
+        function updateLanguage() {
+            currentLang = langSelect.value;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    el.textContent = translations[currentLang][key];
+                }
+            });
+            calculateVolume(); // Re-render text inside canvas and volume span
+        }
+
+        langSelect.addEventListener('change', updateLanguage);
+
+        themeSelect.addEventListener('change', (e) => {
+            currentTheme = e.target.value;
+            localStorage.setItem('theme', currentTheme);
+            if (currentTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                renderer.setClearColor(0x1e293b, 1);
+            } else {
+                document.documentElement.classList.remove('dark');
+                renderer.setClearColor(0xf8fafc, 1);
+            }
+            draw2D();
+        });
+
+        // Initialize
+        updateLanguage();
+        animate();
+
+    </script>
+</body>
+</html>
